@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEFAULTS="${DEFAULTS:=~/default/dotfiles}"
+DEFAULTS="${DEFAULTS:=${HOME}/default/dotfiles}"
 
 (( $# >= 1 )) && USER_HOME=${1%/}
 (( $# >= 2 )) && DOTFILES_SRC=${2%/}
