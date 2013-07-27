@@ -10,8 +10,12 @@ DEFAULTS="${DEFAULTS:=${HOME}/default/dotfiles}"
 
 : ${DOTFILES_GIT_DIR?"Need to set the location of GIT Directory"} ${DOTFILES_GIT_WORK_TREE?"Need to set the location of the GIT Work Tree Directory"}
 
-[[ -e "${DOTFILES_LOC}/lib/command_setup" ]] && . "${DOTFILES_LOC}/lib/command_setup"
-[[ -e "${DOTFILES_LOC}/lib/update_home" ]] && . "${DOTFILES_LOC}/lib/update_home" || echo "Cannot find helper script aborting ..." && exit 1
+[[ ! -e "${DOTFILES_LOC}/lib/command_setup" ]] && echo "Cannot find command_setup script aborting ..." && exit 1
+[[ -e "${DOTFILES_LOC}/lib/update_home" ]] && echo "Cannot find helper script aborting ..." && exit 1
+
+. "${DOTFILES_LOC}/lib/command_setup"
+. "${DOTFILES_LOC}/lib/update_home"
+
 
 install_dotfiles
 . ~/.profile
