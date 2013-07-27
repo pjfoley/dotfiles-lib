@@ -35,10 +35,6 @@ exists_file()
 # Call exists function and negate the result
 not_exists_file(){ ! (( [[ $# == 1 ]] && exists_file $1 ) || ( [[ $# == 2 ]] && exists_file $1 $2)) ; }
 
-if [[ ! -d ${DOTFILES_BKUP} ]] && DOTFILES_BACKUP; then
-  mkdir -p ${DOTFILES_BKUP}
-fi
-
 confirm_move()
 {
   l_question="$*"
