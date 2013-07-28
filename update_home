@@ -125,7 +125,7 @@ sync_files()
     fi
 
     # If File is not in home or user doesnt want to backup files just write
-    if not_exists_file $HOME_FILE || ! DOTFILES_BACKUP ; then
+    if not_exists_file $HOME_FILE || ! $DOTFILES_BACKUP ; then
       dotfiles_action $DOTFILES_FILE $SOURCE $HOME_FILE
     # Don't do anything if dotfile is in home directory
     elif not_exists_file $SOURCE $HOME_FILE ; then
