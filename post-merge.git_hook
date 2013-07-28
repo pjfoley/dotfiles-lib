@@ -6,20 +6,32 @@ DEFAULTS="${DEFAULTS:=~/default/dotfiles}"
 (( $# >= 2 )) && DOTFILES_SRC=${2%/}
 (( $# >= 3 )) && DOTFILES_BKUP=${3%/}
 
-[[ -e "${DEFAULTS}" ]] && . "${DEFAULTS}"
+if [[ -e "${HOME}/default/dotfiles" ]]; then
+  . "$HOME/default/dotfiles"
+else
+  echo "No default dotfiles settings found at ~/default/dotfiles"
+fi
 
-[[ -e "${DOTFILES_LOC}/lib/command_setup" ]] && . "${DOTFILES_LOC}/lib/command_setup"
-[[ -e "${DOTFILES_LOC}/lib/update_home" ]] && . "${DOTFILES_LOC}/lib/update_home" || echo "Cannot find helper script aborting ..." && exit 1
+[[ ! -e "${DOTFILES_LOC}/lib/command_setup" ]] && echo "Cannot find command_setup script aborting ..." && exit 1
+[[ -e "${DOTFILES_LOC}/lib/update_home" ]] && echo "Cannot find helper script aborting ..." && exit 1
+
+. "${DOTFILES_LOC}/lib/command_setup"
+. "${DOTFILES_LOC}/lib/update_home"
 
 GIT_DIR="${DOTFILES_GIT_DIR:=${DOTFILES_LOC}/.git}"
 GIT_WORK_TREE="${DOTFILES_GIT_WORK_TREE:=${DOTFILES_LOC}}"
 
-GITCHANGES=$(git diff-tree --no-commit-id --name-only --relative=home --diff-filter=D -r HEAD)
 
 l_CUR_DIR=${PWD}
 
 cd $GIT_WORK_TREE
 git submodule update --recursive --init
+git submodule foreach git pull origin master
+
+
+GITCHANGES=$(git diff-tree --no-commit-id --name-only --diff-filter=D -r HEAD)
+
 cd $l_CUR_DIR
+
 sync_files
 clean_dotfiles "${GITCHANGES}"
