@@ -6,7 +6,11 @@ DEFAULTS="${DEFAULTS:=~/default/dotfiles}"
 (( $# >= 2 )) && DOTFILES_SRC=${2%/}
 (( $# >= 3 )) && DOTFILES_BKUP=${3%/}
 
-[[ -e "${DEFAULTS}" ]] && . "${DEFAULTS}"
+if [[ -e "${HOME}/default/dotfiles" ]]; then
+  . "$HOME/default/dotfiles"
+else
+  echo "No default dotfiles settings found at ~/default/dotfiles"
+fi
 
 DOTFILES_BACKUP="${DOTFILES_BACKUP:=true}"
 
