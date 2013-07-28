@@ -116,6 +116,7 @@ sync_files()
 
   for SOURCE in ${dotfiles_src}; do
     DOTFILES_FILE=$(basename $SOURCE)
+    [[ "${DOTFILES_FILE}" == "*" ]] && continue
 
     # if there are two parameters register the sub directory
     if [[ $# == 2 ]] ; then
