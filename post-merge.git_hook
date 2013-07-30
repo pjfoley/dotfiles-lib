@@ -1,13 +1,13 @@
 #!/bin/bash
 
-DEFAULTS="${DEFAULTS:=~/default/dotfiles}"
+DEFAULTS="${DEFAULTS:=${HOME}/default/dotfiles}"
 
 (( $# >= 1 )) && USER_HOME=${1%/}
 (( $# >= 2 )) && DOTFILES_SRC=${2%/}
 (( $# >= 3 )) && DOTFILES_BKUP=${3%/}
 
-if [[ -e "${HOME}/default/dotfiles" ]]; then
-  . "$HOME/default/dotfiles"
+if [[ -e "${DEFAULTS}" ]]; then
+  . "$DEFAULTS"
 else
   echo "No default dotfiles settings found at ~/default/dotfiles"
 fi
@@ -40,7 +40,7 @@ cd $GIT_WORK_TREE
 git submodule update --recursive --init
 git submodule foreach git pull origin master
 
-
+cd $DOTFILES_SRC
 GITCHANGES=$(git diff-tree --no-commit-id --name-only --diff-filter=D -r HEAD)
 
 cd $l_CUR_DIR
