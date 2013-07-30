@@ -130,12 +130,15 @@ sync_files()
     fi
 
     # If File is not in home or user doesnt want to backup files just write
-    if not_exists_file $HOME_FILE || ! $DOTFILES_BACKUP ; then
+    if not_exists_file $HOME_FILE ; then
       dotfiles_action $DOTFILES_FILE $SOURCE $HOME_FILE
     # Don't do anything if dotfile is in home directory
     elif not_exists_file $SOURCE $HOME_FILE ; then
+      # If we don't want to backup then just write the file
+      if ! DOTFILES_BACKUP ; then
+        dotfiles_action $DOTFILES_FILE $SOURCE $HOME_FILE
       # Just move file in home dir if there is not already a backup
-      if not_exists_file $BACKUP_FILE ; then
+      elif not_exists_file $BACKUP_FILE ; then
         mov "Backing up" $HOME_FILE $BACKUP_FILE
         dotfiles_action $DOTFILES_FILE $SOURCE ${HOME_FILE}
       # If there is a backup ask user if its ok to overwrite backed up file
