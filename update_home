@@ -135,7 +135,7 @@ sync_files()
     # Don't do anything if dotfile is in home directory
     elif not_exists_file $SOURCE $HOME_FILE ; then
       # If we don't want to backup then just write the file
-      if ! DOTFILES_BACKUP ; then
+      if ! $DOTFILES_BACKUP ; then
         dotfiles_action $DOTFILES_FILE $SOURCE $HOME_FILE
       # Just move file in home dir if there is not already a backup
       elif not_exists_file $BACKUP_FILE ; then
