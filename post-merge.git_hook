@@ -12,8 +12,20 @@ else
   echo "No default dotfiles settings found at ~/default/dotfiles"
 fi
 
-[[ ! -e "${DOTFILES_LOC}/lib/command_setup" ]] && echo "Cannot find command_setup script aborting ..." && exit 1
-[[ -e "${DOTFILES_LOC}/lib/update_home" ]] && echo "Cannot find helper script aborting ..." && exit 1
+if [[ -e "${DOTFILES_LOC}/lib/command_setup" ]]; then
+  . "${DOTFILES_LOC}/lib/command_setup"
+else
+  echo "Cannot find command_setup script aborting ..."
+  exit 1
+fi
+
+if [[ -e "${DOTFILES_LOC}/lib/update_home" ]]; then
+  . "${DOTFILES_LOC}/lib/update_home"
+else
+  echo "Cannot find helper script aborting ..."
+  exit 1
+fi
+
 
 . "${DOTFILES_LOC}/lib/command_setup"
 . "${DOTFILES_LOC}/lib/update_home"
@@ -33,5 +45,5 @@ GITCHANGES=$(git diff-tree --no-commit-id --name-only --diff-filter=D -r HEAD)
 
 cd $l_CUR_DIR
 
-sync_files
+sync_files "${DOTFILES_SRC%/}/*"
 clean_dotfiles "${GITCHANGES}"
