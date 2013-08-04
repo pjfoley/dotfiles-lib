@@ -1,0 +1,26 @@
+#!/bin/bash
+#################################################################
+#  This file runs various tests against the update_home script  #
+#################################################################
+
+# Exit script if using unset variable
+set -o nounset
+
+# Exit script on unhandled non-true return value
+set -o errexit
+
+# User's Home Location
+USER_HOME="${USER_HOME:=${1}}"
+
+# Location to store dotfiles
+DOTFILES_LOC="${DOTFILES_LOC:=${2}}"
+
+# Location of the Home Directory files within the dotfiles repo
+DOTFILES_SRC="${DOTFILES_SRC:=${DOTFILES_LOC}/home}"
+
+# Backup existing dotfiles if it will be replaced
+DOTFILES_BKUP="${DOTFILES_BKUP:=${USER_HOME}/.dotfiles_org}"
+
+# Do we want to backup existing dotfiles
+DOTFILES_BACKUP=true
+
