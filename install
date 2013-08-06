@@ -24,10 +24,13 @@ fi
 install_dotfiles
 . ~/.profile
 
-l_question="Install GIT post-merge hook to auto-update on git pull - (Y)es, (N)o: "
-l_result=$(confirm_move ${l_question})
-if $l_result ; then
-  echo ""
-  echo ""
-  lnk "Installing GIT Post Merge Hook" "${DOTFILES_GIT_WORK_TREE}/lib/post-merge.git_hook" "${DOTFILES_GIT_DIR}/hooks/post-merge"
+if not_exists_file "${DOTFILES_GIT_WORK_TREE}/lib/post-merge.git_hook" "${DOTFILES_GIT_DIR}/hooks/post-merge" ; then
+
+  l_question="Install GIT post-merge hook to auto-update on git pull - (Y)es, (N)o: "
+  l_result=$(confirm_move ${l_question})
+  if $l_result ; then
+    echo ""
+    echo ""
+    lnk "Installing GIT Post Merge Hook" "${DOTFILES_GIT_WORK_TREE}/lib/post-merge.git_hook" "${DOTFILES_GIT_DIR}/hooks/post-merge"
+  fi
 fi
