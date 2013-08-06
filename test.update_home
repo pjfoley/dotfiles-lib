@@ -9,18 +9,211 @@ set -o nounset
 # Exit script on unhandled non-true return value
 set -o errexit
 
-# User's Home Location
-USER_HOME="${USER_HOME:=${1}}"
+. "$(dirname $0)"/update_home
 
-# Location to store dotfiles
-DOTFILES_LOC="${DOTFILES_LOC:=${2}}"
+# Location to output tests
+TESTDIR_ANCHOR="${TESTDIR_ANCHOR:=${1}}"
 
-# Location of the Home Directory files within the dotfiles repo
-DOTFILES_SRC="${DOTFILES_SRC:=${DOTFILES_LOC}/home}"
+mkdir -p "${TESTDIR_ANCHOR}"/{"source","home",reference,utility_checks}
+SOURCE_ANCHOR="${TESTDIR_ANCHOR}/source"
+HOME_ANCHOR="${TESTDIR_ANCHOR}/home"
+REF_ANCHOR="${TESTDIR_ANCHOR}/reference"
 
-# Backup existing dotfiles if it will be replaced
-DOTFILES_BKUP="${DOTFILES_BKUP:=${USER_HOME}/.dotfiles_org}"
+utility_checks_file_dir()
+{
+  ROOT_DIR="${TESTDIR_ANCHOR}"/utility_checks/"$1" && mkdir -p "${ROOT_DIR}"
+  TMP_FILE=$(mktemp)
 
-# Do we want to backup existing dotfiles
-DOTFILES_BACKUP=true
+  lnk "Test Linking" "/dev/null" "${ROOT_DIR}/lnk_source"
+  cpy "Test Copying" "$TMP_FILE" "${ROOT_DIR}/cpy_file"
+  mov "Test Moving" "$TMP_FILE" "${ROOT_DIR}/mov_file"
+  mkd "Test MKD" "Not used" "${ROOT_DIR}/mkd_dir"
+  touch "${ROOT_DIR}/file_delete_me" && rm_f "Test Delete File" "${ROOT_DIR}/file_delete_me"
+  mkdir -p "${ROOT_DIR}/dir_delete_me" && rm_d "test Delete Dir" "${ROOT_DIR}/dir_delete_me"
+  echo
+  echo
+}
 
+real_names_check()
+{
+  echo "Beginning real_name_check"
+  [ "$(file_real_name dot_test)" == ".test" ] || echo "dot_ Failed"
+  [ "$(file_real_name dcp_test)" == ".test" ] || echo "dcp_ Failed"
+  [ "$(file_real_name cpy_test)" == "test" ] || echo "cpy_ Failed"
+  [ "$(file_real_name mov_test)" == "test" ] || echo "mov_ Failed"
+  [ "$(file_real_name mkd_test)" == "test" ] || echo "mkd_ Failed"
+  [ "$(file_real_name testme)" == "testme" ] || echo "testme Failed"
+  echo "Finished real_names_check"
+}
+
+get_dir_checks()
+{
+  echo "Beginning get_dir_checks"
+  [ "$(get_dir /src/really/long/dir/dot_me /src)" == "really/long/dir/.me" ] || echo "Long form Failed"
+  [ "$(get_dir /src/dot_me /src)" == ".me" ] || echo "Short Form Failed"
+  echo "Finished get_dir_checks"
+}
+
+setup_basic_empty_files()
+{
+  DOTFILES_SRC="${TESTDIR_ANCHOR}/source/$1" && mkdir -p "${DOTFILES_SRC}"
+  USER_HOME="${TESTDIR_ANCHOR}/home/$1" && mkdir -p "${USER_HOME}"
+  REFERENCE_DIR="${TESTDIR_ANCHOR}/reference/$1" && mkdir -p "${REFERENCE_DIR}"
+
+  # Setup Source Files
+  mkdir -p "${DOTFILES_SRC}"/{dot_empty,mkd_empty}
+  touch "${DOTFILES_SRC}"/{dot_dotfile,dcp_dotcopy,visfile}
+
+  # Setup Reference Files
+  ln -fs "${DOTFILES_SRC}"/dot_empty "${REFERENCE_DIR}"/.empty
+  ln -fs "${DOTFILES_SRC}"/dot_dotfile "${REFERENCE_DIR}"/.dotfile
+  ln -fs "${DOTFILES_SRC}"/visfile "${REFERENCE_DIR}"/visfile
+
+  cp "${DOTFILES_SRC}"/dcp_dotcopy "${REFERENCE_DIR}"/.dotcopy
+  mkdir -p "${REFERENCE_DIR}"/empty
+}
+
+setup_complex_source_empty_home()
+{
+  DOTFILES_SRC="${TESTDIR_ANCHOR}/source/$1" && mkdir -p "${DOTFILES_SRC}"
+  USER_HOME="${TESTDIR_ANCHOR}/home/$1" && mkdir -p "${USER_HOME}"
+  REFERENCE_DIR="${TESTDIR_ANCHOR}/reference/$1" && mkdir -p "${REFERENCE_DIR}"
+
+  # Setup Source Files
+  mkdir -p "${DOTFILES_SRC}"/{dot_empty,mkd_empty}
+  mkdir -p "${DOTFILES_SRC}"/mkd_dir_files/{dot_empty,mkd_empty}
+
+  touch "${DOTFILES_SRC}"/{dot_dotfile,dcp_dotcopy,visfile}
+  touch "${DOTFILES_SRC}"/mkd_dir_files/{dot_dotfile,dcp_dotcopy,visfile}
+
+  # Setup Reference Files
+  mkdir -p "${REFERENCE_DIR}"/empty
+  mkdir -p "${REFERENCE_DIR}"/dir_files/empty
+
+  cp "${DOTFILES_SRC}"/dcp_dotcopy "${REFERENCE_DIR}"/.dotcopy
+  cp "${DOTFILES_SRC}"/dcp_dotcopy "${REFERENCE_DIR}"/dir_files/.dotcopy
+
+  ln -fs "${DOTFILES_SRC}"/dot_empty "${REFERENCE_DIR}"/.empty
+  ln -fs "${DOTFILES_SRC}"/dot_dotfile "${REFERENCE_DIR}"/.dotfile
+  ln -fs "${DOTFILES_SRC}"/visfile "${REFERENCE_DIR}"/visfile
+
+  ln -fs "${DOTFILES_SRC}"/dot_empty "${REFERENCE_DIR}"/dir_files/.empty
+  ln -fs "${DOTFILES_SRC}"/dot_dotfile "${REFERENCE_DIR}"/dir_files/.dotfile
+  ln -fs "${DOTFILES_SRC}"/visfile "${REFERENCE_DIR}"/dir_files/visfile
+
+}
+
+setup_complex_source_clashing_home()
+{
+  DOTFILES_SRC="${TESTDIR_ANCHOR}/source/$1" && mkdir -p "${DOTFILES_SRC}"
+  USER_HOME="${TESTDIR_ANCHOR}/home/$1" && mkdir -p "${USER_HOME}"
+  REFERENCE_DIR="${TESTDIR_ANCHOR}/reference/$1" && mkdir -p "${REFERENCE_DIR}"
+
+  # Setup Source Files
+  mkdir -p "${DOTFILES_SRC}"/{dot_empty,mkd_empty}
+  mkdir -p "${DOTFILES_SRC}"/mkd_dir_files/{dot_empty,mkd_empty}
+
+  touch "${DOTFILES_SRC}"/{dot_dotfile,dcp_dotcopy,visfile}
+  touch "${DOTFILES_SRC}"/mkd_dir_files/{dot_dotfile,dcp_dotcopy,visfile}
+
+  # Setup Home Directory
+  mkdir -p "${USER_HOME}"/empty
+  mkdir -p "${USER_HOME}"/dir_files/empty
+
+  touch "${USER_HOME}"/{.dotfile,.dotcopy,visfile}
+  touch "${USER_HOME}"/dir_files/{.dotfile,.dotcopy,visfile}
+
+  echo "WTF" > "${USER_HOME}"/.dotcopy
+  echo "WTF" > "${USER_HOME}"/dir_files/.dotcopy
+
+
+  # Setup Reference Files
+  mkdir -p "${REFERENCE_DIR}"/empty
+  mkdir -p "${REFERENCE_DIR}"/dir_files/empty
+
+  cp "${DOTFILES_SRC}"/dcp_dotcopy "${REFERENCE_DIR}"/.dotcopy
+  cp "${DOTFILES_SRC}"/dcp_dotcopy "${REFERENCE_DIR}"/dir_files/.dotcopy
+
+  ln -fs "${DOTFILES_SRC}"/dot_empty "${REFERENCE_DIR}"/.empty
+  ln -fs "${DOTFILES_SRC}"/dot_dotfile "${REFERENCE_DIR}"/.dotfile
+  ln -fs "${DOTFILES_SRC}"/visfile "${REFERENCE_DIR}"/visfile
+
+  ln -fs "${DOTFILES_SRC}"/dot_empty "${REFERENCE_DIR}"/dir_files/.empty
+  ln -fs "${DOTFILES_SRC}"/dot_dotfile "${REFERENCE_DIR}"/dir_files/.dotfile
+  ln -fs "${DOTFILES_SRC}"/visfile "${REFERENCE_DIR}"/dir_files/visfile
+
+}
+
+not_exists_checks()
+{
+  DOTFILES_SRC="${1}"
+  USER_HOME="${2}"
+
+  if [ ! -e "${DOTFILES_SRC}" ] || [ ! -e "${USER_HOME}" ] ; then
+    echo "Need to pass valid directories"
+    exit 1
+  fi
+
+  echo "Beginning not_exists_check"
+  # Need to confirm that file names are converting properly
+  real_names_check >/dev/null
+
+  for SOURCE in "${DOTFILES_SRC}"/*; do
+    if ! not_exists_file  "${USER_HOME}/$(file_real_name $(basename $SOURCE))" ; then
+      echo "ERROR - This message should not be seen - $SOURCE"
+    fi
+  done
+  echo "Finished not_exists_check"
+
+}
+
+exists_checks()
+{
+  DOTFILES_SRC="${1}"
+  USER_HOME="${2}"
+
+  if [ ! -e "${DOTFILES_SRC}" ] || [ ! -e "${USER_HOME}" ] ; then
+    echo "Need to pass valid directories"
+    exit 1
+  fi
+
+  echo "Beginning exists_check"
+  # Need to confirm that file names are converting properly
+  real_names_check >/dev/null
+
+  for SOURCE in "${DOTFILES_SRC}"/*; do
+    if ! exists_file $SOURCE "${USER_HOME}/$(file_real_name $(basename $SOURCE))" ; then
+      echo "ERROR - This message should not be seen - $SOURCE"
+    fi
+  done
+  echo "Finished exists_check"
+
+}
+
+
+test_sync()
+{
+  DOTFILES_SRC="${1}"
+  USER_HOME="${2}"
+  DOTFILES_BKUP="${USER_HOME}/.dotfiles_org"
+
+  install_dotfiles
+}
+
+
+
+# Check utility functions
+#utility_checks_file_dir "basic_file_dir_functions"
+#real_names_check
+#get_dir_checks
+
+#setup_basic_empty_files "test1"
+#not_exists_checks "${SOURCE_ANCHOR}/test1" "${HOME_ANCHOR}/test1"
+#exists_checks "${SOURCE_ANCHOR}/test1" "${REF_ANCHOR}/test1"
+
+
+#setup_complex_source_empty_home "test2"
+#test_sync "${SOURCE_ANCHOR}/test2" "${HOME_ANCHOR}/test2"
+
+#setup_complex_source_clashing_home "test3"
+#test_sync "${SOURCE_ANCHOR}/test3" "${HOME_ANCHOR}/test3"

@@ -1,20 +1,12 @@
 #!/bin/bash
 
-DEFAULTS="${DEFAULTS:=~/default/dotfiles}"
+# Exit script if using unset variable
+set -o nounset
 
-(( $# >= 1 )) && USER_HOME=${1%/}
-(( $# >= 2 )) && DOTFILES_SRC=${2%/}
-(( $# >= 3 )) && DOTFILES_BKUP=${3%/}
-
-if [[ -e "${HOME}/default/dotfiles" ]]; then
-  . "$HOME/default/dotfiles"
-else
-  echo "No default dotfiles settings found at ~/default/dotfiles"
-fi
+# Exit script on unhandled non-true return value
+set -o errexit
 
 DOTFILES_BACKUP="${DOTFILES_BACKUP:=true}"
-
-[[ -e "${DOTFILES_LOC}/lib/command_setup" ]] && . "${DOTFILES_LOC}/lib/command_setup"
 
 lnk(){ ln -fs $2 $3; echo "$(tput setaf 3)${1} $(tput sgr0) - $(tput setaf 2)${2} $(tput sgr0) to ${3}"; }
 cpy(){ mkdir -p "$(dirname $3)" && cp -Rpf $2 $3; echo "$(tput setaf 5)${1} $(tput sgr0) - $(tput setaf 2)${2} $(tput sgr0) to ${3}"; }
@@ -25,17 +17,43 @@ rm_d(){ rmdir $2; echo "$(tput setaf 1)${1} $(tput sgr0) - $(tput setaf 2)${2} $
 
 exists_file()
 {
-  # Check for existance of file or directory
-  ( [[ $# == 1 ]] \
-    && ( [[ -e ${1} ]] )
-  ) || \
-  # If link confirm it points to dot file or if exists both files equal each other
-  ( [[ $# == 2 ]] \
-      && ( [[ -h ${2} ]] && [[ $(readlink ${2}) == ${1} ]] ) \
-      || ( [[ ! -d $2 ]] && [[ -e $2 ]] && $(cmp -s $1 $2) ) \
-      || ( [[ -d $2 ]] && [[ "$(file_real_name $(get_dir $1 $DOTFILES_SRC))"  == "$(file_real_name $(get_dir $2 $USER_HOME))" ]] ) \
-  ) ;
+  case $# in
+    1 )
+      [ -e "${1}" ]
+      ;;
+    2 )
+
+      f_name="$(basename ${1})"
+      f_type="${f_name::4}"
+
+#      if is_link_file "$(basename ${1})" ; then
+#        echo "$(tput setaf 1) is link $(tput sgr0)"
+#      fi
+#    "dcp_" | "cpy_" | "mov_" | "mkd_" )
+# Is Link    "dot_" | * )
+#"${1::4}"
+
+#      [ -h "${2}" ] && echo "Is Link"
+#      [ ! -d $2 ] && echo "Not Directory"
+#      [ -d $2 ] && echo "Is Directory"
+#      [ ! -e "${2}" ] && echo "File not there"
+
+      if is_link_file "$f_type" ; then
+        [[ $(readlink ${2}) == ${1} ]]
+      elif [ ! -d $2 ] ; then #&& [ -e $2 ] ; then
+#      elif [ "f_type" != "_mkd" ] ; then #&& [ -e $2 ] ; then
+#        echo "Not Directory"
+        $(cmp -s $1 $2)
+      elif [ "f_type" == "_mkd" ] ; then
+        [ "$(file_real_name $(get_dir $1 $DOTFILES_SRC))"  == "$(get_dir $2 $USER_HOME)" ]
+      elif [ ! -e "${2}" ] ; then
+#        echo "Default"
+        false
+      fi
+      ;;
+  esac
 }
+
 # Call exists function and negate the result
 not_exists_file(){ ! (( [[ $# == 1 ]] && exists_file $1 ) || ( [[ $# == 2 ]] && exists_file $1 $2)) ; }
 
@@ -76,9 +94,18 @@ get_dir()
   [[ ! "$HEAD" == "." ]] && echo $HEAD || echo
 }
 
+# Is file a link file
+is_link_file()
+{
+  case "${1::4}" in
+    "dcp_" | "cpy_" | "mov_" | "mkd_" )
+      false ;;
+    * )
+      true ;;
+  esac
+}
 
-
-# Files marked as cpy or mov will be move
+# Files marked as cpy or mov will be moved
 file_real_name()
 {
   case "${1::4}" in
@@ -112,7 +139,9 @@ dotfiles_action()
 sync_files()
 {
   local dotfiles_src="$1"
+  set +u
   local dotfiles_subdirectory="$2"
+  set -u
 
   for SOURCE in ${dotfiles_src}; do
     DOTFILES_FILE=$(basename $SOURCE)
@@ -151,7 +180,9 @@ sync_files()
         fi
       fi
     fi
-    [[ "${DOTFILES_FILE::4}" == "mkd_" ]] && [[ $SUBDIR ]] && sync_files "${SOURCE%/}/*" "$(get_dir $SOURCE $DOTFILES_SRC)"
+    if [ "${DOTFILES_FILE::4}" == "mkd_" ] && [ $SUBDIR ] ; then
+      sync_files "${SOURCE%/}/*" "$(get_dir $SOURCE $DOTFILES_SRC)"
+    fi
   done
 }
 
@@ -159,8 +190,8 @@ sync_files()
 clean_dotfiles()
 {
   # Should only be list of removed git files
-  GIT_CHANGES=$1
-  for SOURCE in ${1}; do
+  GIT_CHANGES="$1"
+  for SOURCE in "${GIT_CHANGES}" ; do
     HOME_FILE="${USER_HOME}/$(get_dir $DOTFILES_SRC/$SOURCE $DOTFILES_SRC)"
     SUBDIR="$(get_dir $DOTFILES_SRC/$(dirname $SOURCE) $DOTFILES_SRC)"
 
